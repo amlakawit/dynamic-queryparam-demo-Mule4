@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="28dbb2bd-bfd6-4ec0-b20f-13a8faef2b74" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="dynamic-queryparamsFlow" doc:id="0233ad4d-c9d8-4a8e-8bf0-fa9c564ff389" >
+		<http:listener doc:name="Listener" doc:id="cfca7273-eddb-46b5-9846-3f66ebde7f5a" config-ref="HTTP_Listener_config" path="get-gender-and-nationality"/>
+		<set-variable value="#[attributes.queryParams.name]" doc:name="Name" doc:id="a9f4a8af-00bf-4e01-a35e-d3c9886d64ec" variableName="name"/>
+		<scatter-gather doc:name="Scatter-Gather" doc:id="8bbd5f26-2fe7-4b38-95fe-53b57e166f09" >
+			<route >
+				<http:request method="GET" doc:name="Gender" doc:id="8ef20b14-0c87-41e8-94e8-7109f3375a8a" url='#["https://api.genderize.io?name=" ++ vars.name]'/>
+			</route>
+			<route >
+				<http:request method="GET" doc:name="Nationality" doc:id="5d577f43-f446-4270-ae16-a39b1c3ed14c" url='#["https://api.nationalize.io?name=" ++ vars.name]'/>
+			</route>
+		</scatter-gather>
+		<ee:transform doc:name="Transform Message" doc:id="5e6cf138-a4ad-4300-a658-1f14a7e119bf" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Gender" : payload."0".payload,
+	"Nationality": payload."1".payload
+
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
